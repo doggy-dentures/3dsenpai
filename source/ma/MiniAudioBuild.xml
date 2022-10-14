@@ -1,0 +1,17 @@
+<xml>
+	<set name="PROJECT_DIR" value="${this_dir}" />
+
+	<files id='haxe'>
+		<compilervalue name="-I" value="${PROJECT_DIR}/" />
+		<compilervalue name="-I" value="${PROJECT_DIR}/include" />
+	</files>
+
+	<target id='haxe' tool='linker' toolid='exe'>
+		<lib name='${PROJECT_DIR}/lib/libogg.lib' if='windows HXCPP_M64' />
+		<lib name='${PROJECT_DIR}/lib/opus.lib' if='windows HXCPP_M64' />
+		<lib name='${PROJECT_DIR}/lib/opusfile.lib' if='windows HXCPP_M64' />
+		<lib name='${PROJECT_DIR}/lib32/libogg.lib' if='windows HXCPP_M32' />
+		<lib name='${PROJECT_DIR}/lib32/opus.lib' if='windows HXCPP_M32' />
+		<lib name='${PROJECT_DIR}/lib32/opusfile.lib' if='windows HXCPP_M32' />
+	</target>
+</xml>
