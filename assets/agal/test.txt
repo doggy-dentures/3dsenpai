@@ -1,0 +1,13 @@
+mov ft6, v0											// copy uv coord to ft6
+div ft6.x, ft6.x, fc0.x								// rescale copied uv x coord to match screen tex ratio
+div ft6.y, ft6.y, fc0.y								// rescale copied uv y coord to match screen tex ratio
+tex ft0, v0, fs0 <2d, clamp, nearest, nomip> 		// set tv tex to ft0
+tex ft1, ft6, fs1 <2d, clamp, nearest, nomip> 		// set screen tex to ft1 (using rescaled uv coord)
+slt ft2.x, v0.x, fc0.x 								// set ft2.x to 1 if uv is within x range of tv screen model
+slt ft2.y, v0.y, fc0.y 								// set ft2.y to 1 if uv is within y range of tv screen model
+mul ft2.z, ft2.x, ft2.y 							// multiply ft2.x and ft2.y, result is 1 if uv within both x and y range of tv screen, set to ft2.z
+seq ft2.w, ft2.z, fc0.z 							// if ft2.z is zero, set ft2.w to 1 (uv outside of tv screen)
+mul ft3, ft0, ft2.w 								// multiply tv tex color by "uv outside of tv screen" value
+mul ft4, ft1, ft2.z 								// multiply tv screen color by "uv inside of tv screen" value
+add ft5, ft3, ft4  									// add the two together, should give a result where screen tex is in tv screen part of model
+mov oc, ft5											// set that new tex to the color output

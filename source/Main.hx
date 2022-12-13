@@ -1,5 +1,9 @@
 package;
 
+import openfl.net.SharedObject;
+import haxe.Unserializer;
+import sys.io.File;
+import sys.FileSystem;
 import openfl.system.System;
 import flixel.system.scaleModes.RatioScaleMode;
 import flixel.FlxG;
@@ -13,6 +17,8 @@ class Main extends Sprite
 
 	public static var novid:Bool = false;
 	public static var flippymode:Bool = false;
+
+	public static var goodThing:Bool = false;
 
 	public function new()
 	{

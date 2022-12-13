@@ -18,6 +18,8 @@ class Config
 	public static var controllerScheme:Int;
 	public static var bgDim:Int;
 	public static var fpsDisplayValue:Int;
+	public static var lowRes:Bool;
+	public static var noMouse:Bool;
 
 	public static function resetSettings():Void
 	{
@@ -32,6 +34,8 @@ class Config
 		FlxG.save.data.noFpsCap = true;
 		FlxG.save.data.controllerScheme = 0;
 		FlxG.save.data.fpsDisplayValue = 0;
+		FlxG.save.data.lowRes = false;
+		FlxG.save.data.noMouse = false;
 		reload();
 	}
 
@@ -49,10 +53,12 @@ class Config
 		controllerScheme = FlxG.save.data.controllerScheme;
 		bgDim = FlxG.save.data.bgDim;
 		fpsDisplayValue = FlxG.save.data.fpsDisplayValue;
+		lowRes = FlxG.save.data.lowRes;
+		noMouse = FlxG.save.data.noMouse;
 	}
 
 	public static function write(offsetW:Float, accuracyW:String, healthMultiplierW:Float, healthDrainMultiplierW:Float, comboTypeW:Int, downscrollW:Bool,
-			noteGlowW:Bool, ghostTapTypeW:Int, noFpsCapW:Bool, controllerSchemeW:Int, bgDimW:Int, fpsDisplayValue:Int):Void
+			noteGlowW:Bool, ghostTapTypeW:Int, noFpsCapW:Bool, controllerSchemeW:Int, bgDimW:Int, fpsDisplayValue:Int, lowRes:Bool, noMouse:Bool):Void
 	{
 		FlxG.save.data.offset = offsetW;
 		FlxG.save.data.accuracy = accuracyW;
@@ -66,6 +72,8 @@ class Config
 		FlxG.save.data.controllerScheme = controllerSchemeW;
 		FlxG.save.data.bgDim = bgDimW;
 		FlxG.save.data.fpsDisplayValue = fpsDisplayValue;
+		FlxG.save.data.lowRes = lowRes;
+		FlxG.save.data.noMouse = noMouse;
 
 		FlxG.save.flush();
 
@@ -98,6 +106,10 @@ class Config
 			FlxG.save.data.bgDim = 0;
 		if (FlxG.save.data.fpsDisplayValue == null)
 			FlxG.save.data.fpsDisplayValue = 0;
+		if (FlxG.save.data.lowRes == null)
+			FlxG.save.data.lowRes = false;
+		if (FlxG.save.data.noMouse == null)
+			FlxG.save.data.noMouse = false;
 
 		if (FlxG.save.data.ee1 == null)
 			FlxG.save.data.ee1 = false;

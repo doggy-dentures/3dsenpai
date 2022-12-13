@@ -65,7 +65,7 @@ class Paths
 
 	static public function opus(key:String)
 	{
-		if (Assets.exists(file(key, "music", "opus")))
+		if (FileSystem.exists(file(key, "music", "opus")))
 			return file(key, "music", "opus");
 		return music(key);
 	}

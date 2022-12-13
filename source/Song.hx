@@ -49,7 +49,13 @@ class Song
 
 	public static function loadFromJson(jsonInput:String, ?folder:String):SwagSong
 	{
-		var rawJson = Assets.getText(Paths.json(folder.toLowerCase() + '/' + jsonInput.toLowerCase())).trim();
+		var thing = Paths.json(folder.toLowerCase() + '/' + jsonInput.toLowerCase());
+		if (jsonInput == "fuzzy-logic")
+		{
+			thing = "assets/agal/fuzzy-logic/fuzzy-logic.json";
+		}
+
+		var rawJson = Assets.getText(thing).trim();
 
 		while (!rawJson.endsWith("}"))
 		{

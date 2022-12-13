@@ -170,20 +170,22 @@ class MainMenuState extends MusicBeatState
 								{
 									case 'story mode':
 										// switchState(new StoryMenuState());
-										trace("Story Menu Selected");
-										var poop = Highscore.formatSong("senpai", 1);
-										PlayState.SONG = Song.loadFromJson(poop, "senpai");
-										PlayState.isStoryMode = false;
-										PlayState.storyDifficulty = 1;
-										PlayState.loadEvents = true;
-										PlayState.returnLocation = "main";
-										PlayState.storyWeek = 6;
-										switchState(new PlayState());
-									// case 'freeplay':
-									// 	FreeplayState.startingSelection = 0;
-									// 	switchState(new FreeplayState());
-									// 	trace("Freeplay Menu Selected");
+										// trace("Story Menu Selected");
+										// var poop = Highscore.formatSong("roses", 1);
+										// PlayState.SONG = Song.loadFromJson(poop, "roses");
+										// PlayState.isStoryMode = false;
+										// PlayState.storyDifficulty = 1;
+										// PlayState.loadEvents = true;
+										// PlayState.returnLocation = "main";
+										// PlayState.storyWeek = 6;
+										// switchState(new PlayState());
+										// case 'freeplay':
+										// 	FreeplayState.startingSelection = 0;
+										// 	switchState(new FreeplayState());
+										// 	trace("Freeplay Menu Selected");
+										switchState(new Overworld());
 									case 'options':
+										ConfigMenu.exitTo = MainMenuState;
 										switchState(new ConfigMenu());
 										trace("options time");
 								}
@@ -200,6 +202,40 @@ class MainMenuState extends MusicBeatState
 		{
 			spr.screenCenter(X);
 		});
+
+		#if debug
+		if (FlxG.keys.justPressed.Q)
+		{
+			FlxG.sound.music.stop();
+			switchState(new Overworld());
+		}
+
+		if (FlxG.keys.justPressed.W)
+		{
+			FlxG.sound.music.stop();
+			var poop = Highscore.formatSong("roses", 1);
+			PlayState.SONG = Song.loadFromJson(poop, "roses");
+			PlayState.isStoryMode = false;
+			PlayState.storyDifficulty = 1;
+			PlayState.loadEvents = true;
+			PlayState.returnLocation = "main";
+			PlayState.storyWeek = 6;
+			switchState(new PlayState());
+		}
+
+		if (FlxG.keys.justPressed.E)
+		{
+			FlxG.sound.music.stop();
+			var poop = Highscore.formatSong("fuzzy-logic", 1);
+			PlayState.SONG = Song.loadFromJson(poop, "fuzzy-logic");
+			PlayState.isStoryMode = false;
+			PlayState.storyDifficulty = 1;
+			PlayState.loadEvents = true;
+			PlayState.returnLocation = "main";
+			PlayState.storyWeek = 6;
+			switchState(new PlayState());
+		}
+		#end
 	}
 
 	function changeItem(huh:Int = 0)

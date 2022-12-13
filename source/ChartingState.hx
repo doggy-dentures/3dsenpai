@@ -191,8 +191,8 @@ class ChartingState extends MusicBeatState
 		add(gridBGTriple);
 		add(gridBGOverlay);
 
-		leftIcon = new HealthIcon('bf');
-		rightIcon = new HealthIcon('senpai');
+		leftIcon = new HealthIcon('senpai');
+		rightIcon = new HealthIcon('bf');
 
 		leftIcon.scrollFactor.set(1, 1);
 		rightIcon.scrollFactor.set(1, 1);
@@ -712,10 +712,19 @@ class ChartingState extends MusicBeatState
 			// vocals.stop();
 		}
 
-		FlxG.sound.playMusic(Paths.music(daSong + "_Inst"), 0.6);
+		var instPath = Paths.music(daSong + "_Inst");
+		var vocalPath = Paths.music(daSong + "_Voices");
+
+		if (daSong.toLowerCase() == 'fuzzy-logic')
+		{
+			instPath = "assets/agal/Fuzzy-Logic_Inst.ogg";
+			vocalPath = "assets/agal/Fuzzy-Logic_Voices.ogg";
+		}
+
+		FlxG.sound.playMusic(instPath, 0.6);
 
 		// WONT WORK FOR TUTORIAL OR TEST SONG!!! REDO LATER
-		vocals = new FlxSound().loadEmbedded(Paths.music(daSong + "_Voices"));
+		vocals = new FlxSound().loadEmbedded(vocalPath);
 		FlxG.sound.list.add(vocals);
 
 		FlxG.sound.music.pause();

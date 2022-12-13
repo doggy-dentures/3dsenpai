@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TextureAtlas imagePath="static.png" width="1024" height="512">
+  <SubTexture name="frame_0_delay-0.04s" x="2" y="2" width="180" height="320" rotated="true"  frameX="-0" frameY="-0" frameWidth="320" frameHeight="180"/>
+  <SubTexture name="frame_1_delay-0.04s" x="2" y="326"  width="320" height="180" frameX="-0" frameY="-0" frameWidth="320" frameHeight="180"/>
+  <SubTexture name="frame_2_delay-0.04s" x="186" y="2" width="180" height="320" rotated="true"  frameX="-0" frameY="-0" frameWidth="320" frameHeight="180"/>
+  <SubTexture name="frame_3_delay-0.05s" x="326" y="326"  width="320" height="180" frameX="-0" frameY="-0" frameWidth="320" frameHeight="180"/>
+  <SubTexture name="frame_4_delay-0.05s" x="370" y="2" width="180" height="320" rotated="true"  frameX="-0" frameY="-0" frameWidth="320" frameHeight="180"/>
+  <SubTexture name="frame_5_delay-0.05s" x="554" y="2" width="180" height="320" rotated="true"  frameX="-0" frameY="-0" frameWidth="320" frameHeight="180"/>
+  <SubTexture name="frame_6_delay-0.05s" x="650" y="326"  width="320" height="180" frameX="-0" frameY="-0" frameWidth="320" frameHeight="180"/>
+  <SubTexture name="frame_7_delay-s" x="738" y="2" width="180" height="320" rotated="true"  frameX="-0" frameY="-0" frameWidth="320" frameHeight="180"/>
+</TextureAtlas>

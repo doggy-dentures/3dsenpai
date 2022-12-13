@@ -51,7 +51,7 @@ class ModelThing
 
 	private var skeletonAnimator:SkeletonAnimator;
 
-	public var animationSetSkeleton:SkeletonAnimationSet = new SkeletonAnimationSet();
+	public var animationSetSkeleton:SkeletonAnimationSet;
 
 	private var stateTransition:CrossfadeTransition;
 	private var skeleton:Skeleton;
@@ -67,6 +67,7 @@ class ModelThing
 	public var noLoopList:Array<String>;
 
 	public var currentAnim:String = "";
+	public var currentTime(get, never):Int;
 
 	public var initYaw:Float;
 	public var initPitch:Float;
@@ -81,7 +82,8 @@ class ModelThing
 
 	var flipSingAnims:Bool = false;
 
-	var bitmapTexture:BitmapTexture;
+	public var bitmapTexture:BitmapTexture;
+
 	var atfBytes:ByteArray;
 	var atfTex:ATFTexture;
 
@@ -89,7 +91,7 @@ class ModelThing
 
 	public function new(view:ModelView, modelName:String, modelType:String, animSpeed:Map<String, Float>, noLoopList:Array<String>, modelScale:Float,
 			initYaw:Float, initPitch:Float, initRoll:Float, xOffset:Float, yOffset:Float, zOffset:Float, flipSingAnims:Bool, antialiasing:Bool,
-			atf:Bool = false)
+			atf:Bool = false, ambient:Float = 0, specular:Float = 0, light:Bool = false, jointsPerVertex:Int = 4)
 	{
 		this.modelType = modelType;
 		this.animSpeed = animSpeed;
@@ -109,7 +111,12 @@ class ModelThing
 			trace("ERROR: MODEL OF NAME '" + modelName + ".awd' CAN'T BE FOUND!");
 			return;
 		}
+		animationSetSkeleton = new SkeletonAnimationSet(jointsPerVertex);
 		stateTransition = new CrossfadeTransition(0.1);
+
+		modelView = view;
+		modelView.cameraController.panAngle = 90;
+		modelView.cameraController.tiltAngle = 0;
 
 		Asset3DLibrary.enableParser(AWDParser);
 		Asset3DLibrary.addEventListener(Asset3DEvent.ASSET_COMPLETE, onAssetCompleteAWD);
@@ -140,15 +147,15 @@ class ModelThing
 			modelMaterial = new TextureMaterial(bitmapTexture, antialiasing);
 		}
 
-		modelView = view;
-
-		// modelMaterial.lightPicker = modelView.lightPicker;
-		modelMaterial.shadowMethod = modelView.shadowMapMethod;
+		if (light)
+		{
+			modelMaterial.lightPicker = modelView.lightPicker;
+			modelMaterial.shadowMethod = modelView.shadowMapMethod;
+		}
 		modelMaterial.gloss = 30;
 		modelMaterial.alpha = 1.0;
-
-		modelView.cameraController.panAngle = 90;
-		modelView.cameraController.tiltAngle = 0;
+		modelMaterial.ambient = ambient;
+		modelMaterial.specular = specular;
 	}
 
 	private function onAssetCompleteAWD(event:Asset3DEvent):Void
@@ -211,8 +218,11 @@ class ModelThing
 		if (StringTools.endsWith(event.url, modelName + ".awd"))
 		{
 			trace("DONE COMPLETE");
-			skeletonAnimator = new SkeletonAnimator(animationSetSkeleton, skeleton);
-			mesh.animator = skeletonAnimator;
+			if (skeleton != null)
+			{
+				skeletonAnimator = new SkeletonAnimator(animationSetSkeleton, skeleton);
+				mesh.animator = skeletonAnimator;
+			}
 			render(xOffset, yOffset, zOffset);
 			begoneEventListeners();
 			System.gc();
@@ -406,5 +416,12 @@ class ModelThing
 	public function addRoll(angle:Float)
 	{
 		mesh.roll(angle);
+	}
+
+	public function get_currentTime()
+	{
+		if (skeletonAnimator == null)
+			return 0;
+		return skeletonAnimator.time;
 	}
 }

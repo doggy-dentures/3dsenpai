@@ -64,7 +64,7 @@ class KeyBindMenu extends MusicBeatState
         keyWarning.alpha = 0;
         add(keyWarning);
 
-        var backText = new FlxText(5, FlxG.height - 37, 0, "ESCAPE - Back to Menu\nBACKSPACE - Reset to Defaults\n", 16);
+        var backText = new FlxText(5, FlxG.height - 37, 0, "ESCAPE/BACKSPACE - Back to Menu\nDELETE - Reset to Defaults\n", 16);
 		backText.scrollFactor.set();
 		backText.setFormat("VCR OSD Mono", 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
         add(backText);
@@ -101,11 +101,11 @@ class KeyBindMenu extends MusicBeatState
                     FlxG.sound.play(Paths.sound('scrollMenu'));
                     state = "input";
                 }
-                else if(FlxG.keys.justPressed.ESCAPE || FlxG.gamepads.anyJustPressed(ANY)){
+                else if(FlxG.keys.justPressed.ESCAPE || FlxG.keys.justPressed.BACKSPACE || FlxG.gamepads.anyJustPressed(ANY)){
                     FlxG.sound.play(Paths.sound('cancelMenu'));
                     quit();
                 }
-				else if (FlxG.keys.justPressed.BACKSPACE){
+				else if (FlxG.keys.justPressed.DELETE){
                     FlxG.sound.play(Paths.sound('cancelMenu'));
                     reset();
                 }

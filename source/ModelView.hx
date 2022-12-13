@@ -1,5 +1,9 @@
 package;
 
+import openfl.display3D.textures.Texture;
+import openfl.display3D.Context3D;
+import openfl.display3D.textures.TextureBase;
+import openfl.display3D.Context3DTextureFormat;
 import away3d.animators.*;
 import away3d.containers.*;
 import away3d.controllers.*;
@@ -48,7 +52,14 @@ class ModelView
 	public var pan(get, set):Float;
 	public var tilt(get, set):Float;
 
-	public function new(ambient:Float, specular:Float, diffuse:Float, near:Float, far:Float)
+	var lowRes:Bool = false;
+	var thing:RectangleTexture;
+	var fb:GLFramebuffer;
+	var madeBuffer = false;
+
+	public var sprite:FlxSprite = new FlxSprite();
+
+	public function new(ambient:Float, specular:Float, diffuse:Float, near:Float, far:Float, lowRes:Bool = false)
 	{
 		view = new View3D();
 		view.backgroundAlpha = 0;
@@ -72,11 +83,41 @@ class ModelView
 		light.diffuse = diffuse;
 
 		shadowMapMethod = new FilteredShadowMapMethod(light);
+
+		if (lowRes)
+		{
+			this.lowRes = true;
+			view.visible = false;
+			view.width = 320;
+			view.height = 240;
+			thing = FlxG.stage.context3D.createRectangleTexture(320, 240, Context3DTextureFormat.BGRA_PACKED, false);
+			sprite.loadGraphic(BitmapData.fromTexture(thing));
+		}
 	}
 
 	public function update()
 	{
 		view.render();
+		tryStuff();
+	}
+
+	function tryStuff()
+	{
+		if (lowRes && view.stage3DProxy != null && view.stage3DProxy.context3D != null)
+		{
+			@:privateAccess
+			// var gl = view.stage3DProxy.context3D.gl;
+			var gl = FlxG.stage.context3D.gl;
+			if (!madeBuffer)
+			{
+				gl.enable(gl.DITHER);
+				fb = gl.createFramebuffer();
+				gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+				madeBuffer = true;
+			}
+			@:privateAccess
+			gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, thing.__textureID, 0);
+		}
 	}
 
 	public function addModel(model:Mesh)
@@ -156,6 +197,23 @@ class ModelView
 				view.scene.removeChildAt(i);
 			}
 		}
+		if (thing != null)
+		{
+			thing.dispose();
+		}
+		thing = null;
+		if (sprite != null && sprite.graphic != null)
+		{
+			sprite.graphic.destroy();
+		}
+		sprite = FlxDestroyUtil.destroy(sprite);
+		@:privateAccess
+		if (fb != null)
+		{
+			FlxG.stage.context3D.gl.deleteFramebuffer(fb);
+			trace("DELETED");
+		}
+		fb = null;
 		FlxG.game.stage.removeChild(view);
 		view.dispose();
 		view = null;

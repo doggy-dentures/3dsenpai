@@ -28,12 +28,12 @@ class UIStateExt extends FlxUIState
 
 	override function create()
 	{
+		super.create();
 		if(customTransIn != null){
 			CustomTransition.transition(customTransIn, null);
 		}
 		else if(useDefaultTransIn)
 			CustomTransition.transition(Type.createInstance(defaultTransIn, defaultTransInArgs), null);
-		super.create();
 	}
 
 	public function switchState(_state:FlxState){

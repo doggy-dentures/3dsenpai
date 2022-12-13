@@ -1,0 +1,108 @@
+{
+	"data": [
+	{
+		"id": 1,
+		"tex": "green",
+		"collide": false,
+		"aa": false,
+		"alpha": false
+	},
+	{
+		"id": 2,
+		"tex": "blue",
+		"collide": false,
+		"aa": false,
+		"alpha": false
+	},
+	{
+		"id": 3,
+		"tex": "orange",
+		"collide": false,
+		"aa": false,
+		"alpha": false
+	},
+	{
+		"id": 4,
+		"tex": "red",
+		"collide": false,
+		"aa": false,
+		"alpha": false
+	},
+	{
+		"id": 5,
+		"tex": "yellow",
+		"collide": false,
+		"aa": false,
+		"alpha": false
+	},
+	{
+		"id": 6,
+		"tex": "purple",
+		"collide": false,
+		"aa": false,
+		"alpha": false
+	},
+	{
+		"id": 7,
+		"tex": "grey",
+		"collide": false,
+		"aa": false,
+		"alpha": false
+	},
+	{
+		"id": 8,
+		"tex": "thing",
+		"collide": false,
+		"aa": false,
+		"alpha": false
+	},
+	{
+		"id": 9,
+		"tex": "greenmesh",
+		"collide": false,
+		"aa": false,
+		"alpha": true
+	},
+	{
+		"id": 10,
+		"tex": "senpai",
+		"collide": false,
+		"aa": false,
+		"alpha": false
+	},
+	{
+		"id": 11,
+		"tex": "angry",
+		"collide": false,
+		"aa": false,
+		"alpha": false
+	},
+	{
+		"id": 12,
+		"tex": "options",
+		"collide": false,
+		"aa": false,
+		"alpha": false
+	},
+	{
+		"id": 13,
+		"tex": "portal",
+		"collide": false,
+		"aa": false,
+		"alpha": false
+	},
+	{
+		"id": 14,
+		"tex": "portal2",
+		"collide": false,
+		"aa": false,
+		"alpha": true
+	},
+	{
+		"id": 15,
+		"tex": "steel",
+		"collide": false,
+		"aa": false,
+		"alpha": false
+	}]
+}

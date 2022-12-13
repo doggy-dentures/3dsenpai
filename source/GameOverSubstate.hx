@@ -95,7 +95,8 @@ class GameOverSubstate extends MusicBeatSubstate
 			// 	PlayState.instance.switchState(new StoryMenuState());
 			// else
 			// 	PlayState.instance.switchState(new FreeplayState());
-			PlayState.instance.switchState(new MainMenuState());
+			// PlayState.instance.switchState(new MainMenuState());
+			PlayState.instance.switchState(new Overworld());
 		}
 
 		// if (bf.animation.curAnim.name == 'firstDeath' && bf.animation.curAnim.finished)

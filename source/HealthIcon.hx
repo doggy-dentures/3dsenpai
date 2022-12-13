@@ -1,5 +1,6 @@
 package;
 
+import openfl.Assets;
 import sys.FileSystem;
 import flixel.util.FlxDestroyUtil;
 import flixel.tweens.FlxEase;
@@ -13,6 +14,7 @@ class HealthIcon extends FlxSprite
 	public var iconSize:Float = 128;
 
 	var char:String;
+
 	public var status:String = "normal";
 
 	private var tween:FlxTween;
@@ -36,30 +38,27 @@ class HealthIcon extends FlxSprite
 
 	public function changeChar(char:String)
 	{
-		if (FileSystem.exists("assets/images/healthicons/" + char))
-			this.char = char;
-		else
-			this.char = "face";
+		this.char = char;
 	}
 
 	public function normal()
 	{
-		if (FileSystem.exists("assets/images/healthicons/" + char + "/normal.png"))
-			loadGraphic(Paths.image("healthicons/" + char + "/normal"));
+		if (Assets.exists("assets/agal/healthicons/" + char + "/normal.png"))
+			loadGraphic("assets/agal/healthicons/" + char + "/normal.png");
 		status = "normal";
 	}
 
 	public function win()
 	{
-		if (FileSystem.exists("assets/images/healthicons/" + char + "/win.png"))
-			loadGraphic(Paths.image("healthicons/" + char + "/win"));
+		if (Assets.exists("assets/agal/healthicons/" + char + "/win.png"))
+			loadGraphic("assets/agal/healthicons/" + char + "/win.png");
 		status = "win";
 	}
 
 	public function lose()
 	{
-		if (FileSystem.exists("assets/images/healthicons/" + char + "/lose.png"))
-			loadGraphic(Paths.image("healthicons/" + char + "/lose"));
+		if (Assets.exists("assets/agal/healthicons/" + char + "/lose.png"))
+			loadGraphic("assets/agal/healthicons/" + char + "/lose.png");
 		status = "lose";
 	}
 

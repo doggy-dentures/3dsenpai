@@ -50,6 +50,8 @@ class Character3D extends FlxBasic
 	public var noLoopList:Array<String> = [];
 	public var geoMap:Map<String, String> = new Map<String, String>();
 	public var atf:Bool = false;
+	public var light:Bool = false;
+	public var jointsPerVertex:Int = 4;
 
 	public function new(modelView:ModelView, ?character:String = "bf", ?isPlayer:Bool = false)
 	{
@@ -77,8 +79,8 @@ class Character3D extends FlxBasic
 					"singRIGHT" => "singRIGHT",
 					"singDOWN" => "singDOWN",
 					"idle" => "default",
-                    "idleEnd" => "default",
-                    "singLEFT" => "singUP"
+					"idleEnd" => "default",
+					"singLEFT" => "singUP"
 				];
 				atf = true;
 			case 'gf':
@@ -109,16 +111,50 @@ class Character3D extends FlxBasic
 					"singDOWN" => "singDOWN",
 					"singLEFT" => "singLEFT",
 					"idle" => "default",
-                    "idleEnd" => "default"
+					"idleEnd" => "default"
 				];
-                antialias = false;
+				antialias = false;
+			case 'senpai-angry':
+				modelName = 'senpai-angry';
+				modelScale = 1;
+				animSpeed = ["default" => 1];
+				noLoopList = ["idle", "singUP", "singLEFT", "singRIGHT", "singDOWN"];
+				ambient = 0;
+				specular = 0;
+				diffuse = 1;
+				initYaw = -65;
+				zOffset = -150;
+				yOffset = 70;
+				geoMap = [
+					"singUP" => "singUP",
+					"singRIGHT" => "singRIGHT",
+					"singDOWN" => "singDOWN",
+					"singLEFT" => "singLEFT",
+					"idle" => "default",
+					"idleEnd" => "default"
+				];
+				antialias = false;
+			case 'hydra':
+				modelName = 'hydra';
+				modelScale = 1;
+				animSpeed = ["default" => 1];
+				noLoopList = ["idle", "singUP", "singLEFT", "singRIGHT", "singDOWN"];
+				ambient = 0.5;
+				specular = 0.5;
+				diffuse = 1;
+				initYaw = 0;
+				xOffset = -150;
+				yOffset = 120;
+				atf = true;
+				light = true;
+				jointsPerVertex = 1;
 		}
 
 		this.modelView = modelView;
 		model = new ModelThing(modelView, modelName, 'awd', animSpeed, noLoopList, modelScale, initYaw, initPitch, initRoll, xOffset, yOffset, zOffset, false,
-			antialias, atf);
+			antialias, atf, ambient, specular, light, jointsPerVertex);
 
-        dance();
+		dance();
 	}
 
 	override function update(elapsed:Float)
@@ -262,19 +298,19 @@ class Character3D extends FlxBasic
 
 		if (AnimName.endsWith('miss'))
 		{
-            if (!animExists(AnimName))
-			    AnimName = AnimName.substring(0, AnimName.length - 4);
-            geo = "miss";
-            model.modelMaterial.colorTransform.redMultiplier = 0.2;
-            model.modelMaterial.colorTransform.greenMultiplier = 0.2;
-            model.modelMaterial.colorTransform.blueMultiplier = 0.75;
+			if (!animExists(AnimName))
+				AnimName = AnimName.substring(0, AnimName.length - 4);
+			geo = "miss";
+			model.modelMaterial.colorTransform.redMultiplier = 0.2;
+			model.modelMaterial.colorTransform.greenMultiplier = 0.2;
+			model.modelMaterial.colorTransform.blueMultiplier = 0.75;
 		}
-        else
-        {
-            model.modelMaterial.colorTransform.redMultiplier = 1;
-            model.modelMaterial.colorTransform.greenMultiplier = 1;
-            model.modelMaterial.colorTransform.blueMultiplier = 1;
-        }
+		else
+		{
+			model.modelMaterial.colorTransform.redMultiplier = 1;
+			model.modelMaterial.colorTransform.greenMultiplier = 1;
+			model.modelMaterial.colorTransform.blueMultiplier = 1;
+		}
 
 		if (model != null && model.fullyLoaded)
 		{

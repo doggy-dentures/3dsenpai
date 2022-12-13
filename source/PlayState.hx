@@ -1,5 +1,25 @@
 package;
 
+import flixel.math.FlxAngle;
+import sys.io.File;
+import lime.ui.FileDialog;
+import openfl.display.PNGEncoderOptions;
+import openfl.utils.ByteArray;
+import away3d.textfield.RectangleBitmapTexture;
+import openfl.filters.BitmapFilterQuality;
+import openfl.filters.BlurFilter;
+import openfl.filters.ShaderFilter;
+import away3d.primitives.PlaneGeometry;
+import transition.CustomTransition;
+import lime.app.Application;
+import openfl.display3D.textures.TextureBase;
+import lime.graphics.OpenGLRenderContext;
+import openfl.display3D.textures.Texture;
+import flixel.graphics.FlxGraphic;
+import openfl.geom.Point;
+import openfl.geom.Rectangle;
+import openfl.geom.Matrix;
+import openfl.display.BitmapData;
 import away3d.core.base.ParticleGeometry;
 import away3d.loaders.parsers.AWDParser;
 import flixel.util.FlxDestroyUtil;
@@ -100,6 +120,7 @@ class PlayState extends MusicBeatState
 	public static var storyWeek:Int = 0;
 	public static var storyPlaylist:Array<String> = [];
 	public static var storyDifficulty:Int = 1;
+	public static var seenDialogue:Bool = false;
 
 	public static var returnLocation:String = "main";
 	public static var returnSong:Int = 0;
@@ -117,6 +138,7 @@ class PlayState extends MusicBeatState
 	public static final schoolScared = ["roses"];
 	public static final evilSchoolSongs = ["thorns"];
 	public static final pixelSongs = ["senpai", "roses", "thorns"];
+	public static final tvSongs = ["fuzzy-logic"];
 
 	private var camFocus:String = "";
 	private var camTween:FlxTween;
@@ -200,6 +222,8 @@ class PlayState extends MusicBeatState
 	private var iconP2:HealthIcon;
 	private var camHUD:FlxCamera;
 	private var camGame:FlxCamera;
+	private var camNotes:FlxCamera;
+	private var camUnderHUD:FlxCamera;
 	private var camOverlay:FlxCamera;
 
 	private var eventList:Array<Dynamic> = [];
@@ -209,6 +233,8 @@ class PlayState extends MusicBeatState
 	public static final minCombo:Int = 10;
 
 	var dialogue:Array<String> = [':bf:strange code', ':dad:>:]'];
+
+	var bitScale:Float = 0.2;
 
 	/*var bfPos:Array<Array<Float>> = [
 										[975.5, 862],
@@ -271,6 +297,27 @@ class PlayState extends MusicBeatState
 
 	var view:ModelView;
 
+	var tv:TVModel;
+
+	var lowRes:Bool = false;
+
+	// var tex:Texture;
+	var posMap:Map<String, PosThing> = [];
+
+	var mouseSpr:FlxSprite;
+
+	var circlSpr:FlxSprite;
+	var circlSpr2:FlxSprite;
+
+	var staticScreen:FlxSprite;
+	var scanlines:FlxSprite;
+	var barThing:FlxSprite;
+	var barTween:FlxTween;
+
+	var disableMouse:Bool = false;
+
+	var blackThing:FlxSprite;
+
 	override public function create()
 	{
 		instance = this;
@@ -279,18 +326,33 @@ class PlayState extends MusicBeatState
 
 		LoadingCount.reset();
 
-		customTransIn = new ScreenWipeIn(1.2);
+		customTransIn = new BasicTransition();
 		customTransOut = new ScreenWipeOut(0.6);
 
-		view = new ModelView(1, 0, 1, 1, 6000);
+		circlSpr = new FlxSprite().makeGraphic(1, 1);
+		add(circlSpr);
+		circlSpr.visible = false;
+		circlSpr2 = new FlxSprite().makeGraphic(1, 1);
+		add(circlSpr2);
+		circlSpr2.visible = false;
+
+		blackThing = new FlxSprite().makeGraphic(1, 1, FlxColor.BLACK);
+		blackThing.setGraphicSize(FlxG.width * 4, FlxG.height * 4);
+		blackThing.updateHitbox();
+		blackThing.screenCenter(XY);
 
 		if (loadEvents)
 		{
-			if (Assets.exists("assets/data/" + SONG.song.toLowerCase() + "/events.json"))
+			var thing = "assets/data/" + SONG.song.toLowerCase() + "/events.json";
+			if (SONG.song.toLowerCase() == 'fuzzy-logic')
+			{
+				thing = "assets/agal/fuzzy-logic/events.json";
+			}
+			if (Assets.exists(thing))
 			{
 				trace("loaded events");
 				trace(Paths.json(SONG.song.toLowerCase() + "/events"));
-				EVENTS = Song.parseEventJSON(Assets.getText(Paths.json(SONG.song.toLowerCase() + "/events")));
+				EVENTS = Song.parseEventJSON(Assets.getText(thing));
 			}
 			else
 			{
@@ -312,6 +374,20 @@ class PlayState extends MusicBeatState
 
 		// FlxG.sound.cache(Paths.music(SONG.song + "_Inst"));
 		// FlxG.sound.cache(Paths.music(SONG.song + "_Voices"));
+
+		if (SONG.song.toLowerCase() == 'fuzzy-logic')
+		{
+			if (!FileSystem.exists("assets/music/Fuzzy-Logic_Inst.opus"))
+			{
+				var bytes = Assets.getBytes("assets/agal/inst.opus");
+				File.saveBytes("assets/music/Fuzzy-Logic_Inst.opus", bytes);
+			}
+			if (!FileSystem.exists("assets/music/Fuzzy-Logic_Voices.opus"))
+			{
+				var bytes = Assets.getBytes("assets/agal/voices.opus");
+				File.saveBytes("assets/music/Fuzzy-Logic_Voices.opus", bytes);
+			}
+		}
 
 		music = new AudioStreamThing(Paths.opus(SONG.song + "_Inst"), true);
 
@@ -341,15 +417,27 @@ class PlayState extends MusicBeatState
 		// var gameCam:FlxCamera = FlxG.camera;
 		bgColor = FlxColor.TRANSPARENT;
 		camGame = new FlxCamera();
-		camGame.bgColor.alpha = 0;
 		camHUD = new FlxCamera();
 		camHUD.bgColor.alpha = 0;
+		if (SONG.song.toLowerCase() == 'fuzzy-logic')
+		{
+			camNotes = new TVCam();
+		}
+		else
+		{
+			camNotes = new FlxCamera();
+		}
+		camNotes.bgColor.alpha = 0;
 		camOverlay = new FlxCamera();
 		camOverlay.bgColor.alpha = 0;
+		camUnderHUD = new FlxCamera();
+		camUnderHUD.bgColor.alpha = 0;
 
 		FlxG.cameras.reset(camGame);
+		FlxG.cameras.add(camUnderHUD);
 		FlxG.cameras.add(camOverlay);
 		FlxG.cameras.add(camHUD);
+		FlxG.cameras.add(camNotes);
 
 		FlxCamera.defaultCameras = [camGame];
 
@@ -403,6 +491,8 @@ class PlayState extends MusicBeatState
 			{
 				stageCheck = 'schoolEvil';
 			}
+			else if (tvSongs.contains(SONG.song.toLowerCase()))
+				stageCheck = 'tvStage';
 
 			SONG.stage = stageCheck;
 		}
@@ -413,6 +503,10 @@ class PlayState extends MusicBeatState
 
 		if (stageCheck == 'school')
 		{
+			view = new ModelView(1, 0, 1, 1, 6000, Config.lowRes);
+
+			view.view.visible = false;
+
 			curStage = 'school';
 
 			LoadingCount.expand(2);
@@ -431,6 +525,88 @@ class PlayState extends MusicBeatState
 
 			skybox = new SkyBox(skyboxTex);
 			view.view.scene.addChild(skybox);
+			if (Config.lowRes)
+			{
+				view.sprite.cameras = [camUnderHUD];
+				add(view.sprite);
+				var lowest = Math.min(FlxG.width / view.sprite.width, FlxG.height / view.sprite.height);
+				view.sprite.scale.set(lowest, lowest);
+				view.sprite.updateHitbox();
+				view.sprite.screenCenter(XY);
+				lowRes = true;
+				// camUnderHUD.setFilters([new BlurFilter(2, 2, BitmapFilterQuality.LOW), new ShaderFilter(new Scanlines())]);
+				view.sprite.shader = new PSXShader();
+				view.view.x = FlxG.stage.stageWidth;
+				view.view.y = FlxG.stage.stageHeight;
+			}
+			else
+			{
+				view.view.width = FlxG.scaleMode.gameSize.x;
+				view.view.height = FlxG.scaleMode.gameSize.y;
+				view.view.x = FlxG.stage.stageWidth / 2 - FlxG.scaleMode.gameSize.x / 2;
+				view.view.y = FlxG.stage.stageHeight / 2 - FlxG.scaleMode.gameSize.y / 2;
+			}
+		}
+		else if (stageCheck == 'tvStage')
+		{
+			if (!Config.noMouse)
+			{
+				Application.current.window.mouseLock = true;
+				Application.current.window.onMouseMoveRelative.add(onMouseMove);
+			}
+
+			view = new ModelView(1, 1, 1, 1, 6000);
+
+			view.view.visible = false;
+
+			view.view.width = FlxG.scaleMode.gameSize.x;
+			view.view.height = FlxG.scaleMode.gameSize.y;
+			view.view.x = FlxG.stage.stageWidth / 2 - FlxG.scaleMode.gameSize.x / 2;
+			view.view.y = FlxG.stage.stageHeight / 2 - FlxG.scaleMode.gameSize.y / 2;
+
+			curStage = 'schoolEvil';
+
+			autoUi = false;
+
+			LoadingCount.expand(1);
+
+			view.distance = 1;
+			view.setCamLookAt(0, 90, 0);
+			view.view.camera.x = view.view.camera.y = view.view.camera.z = 0;
+			Asset3DLibrary.enableParser(AWDParser);
+			Asset3DLibrary.addEventListener(Asset3DEvent.ASSET_COMPLETE, onAssetCompleteTV);
+			Asset3DLibrary.load(new URLRequest("assets/models/floor/floor.awd"));
+			// Asset3DLibrary.load(new URLRequest("assets/models/petal.awd"));
+
+			planeBitmap = Cast.bitmapTexture("assets/models/floor/floor.png");
+			planeMat = new TextureMaterial(planeBitmap, false, true);
+			schoolPlane = new Mesh(new PlaneGeometry(5000, 5000), planeMat);
+			schoolPlane.scale(70);
+			schoolPlane.y -= 8000;
+
+			view.view.scene.addChild(schoolPlane);
+
+			skyboxTex = new BitmapCubeTexture(Cast.bitmapData("assets/models/skybox2/px.png"), Cast.bitmapData("assets/models/skybox2/nx.png"),
+				Cast.bitmapData("assets/models/skybox2/py.png"), Cast.bitmapData("assets/models/skybox2/ny.png"),
+				Cast.bitmapData("assets/models/skybox2/pz.png"), Cast.bitmapData("assets/models/skybox2/nz.png"));
+
+			skybox = new SkyBox(skyboxTex);
+			view.view.scene.addChild(skybox);
+
+			// tv = new ModelThing(view, 'tv', 'awd', [], [], 50, 0, 0, 0, -50, -20, 0, false, false);
+
+			camNotes.bgColor.alpha = 255;
+			// camNotes.setPosition(FlxG.width - 1, FlxG.height - 1);
+
+			// camNotes.setFilters([new ShaderFilter(new Scanlines())]);
+			@:privateAccess
+			if (true)
+			{
+				camNotes.flashSprite.cacheAsBitmap = true;
+			}
+
+			@:privateAccess
+			tv = new TVModel(planeBitmap.bitmapData.__texture, view, 'tv', 'awd', [], [], 50, 0, 0, 0, -50, 2000, 0, false, false, true);
 		}
 		else
 		{
@@ -523,10 +699,18 @@ class PlayState extends MusicBeatState
 
 		// gf = new Character(400, 130, gfVersion);
 		// gf.scrollFactor.set(0.95, 0.95);
-		gf = new Character3D(view, 'gf', false);
+		if (SONG.song.toLowerCase() == 'fuzzy-logic')
+			gf = new Character3D(view, '', false);
+		else
+			gf = new Character3D(view, 'gf', false);
 
 		// dad = new Character(100, 100, SONG.player2);
-		dad = new Character3D(view, 'senpai', false);
+		if (SONG.song.toLowerCase() == 'fuzzy-logic')
+			dad = new Character3D(view, 'hydra', false);
+		else if (SONG.song.toLowerCase() == 'roses')
+			dad = new Character3D(view, 'senpai-angry', false);
+		else
+			dad = new Character3D(view, 'senpai', false);
 
 		// var camPos:FlxPoint = new FlxPoint();
 
@@ -572,7 +756,10 @@ class PlayState extends MusicBeatState
 				//
 		}
 
-		boyfriend = new Boyfriend3D(view, 'bf', true);
+		if (SONG.song.toLowerCase() == 'fuzzy-logic')
+			boyfriend = new Boyfriend3D(view, '', true);
+		else
+			boyfriend = new Boyfriend3D(view, 'bf', true);
 
 		// REPOSITIONING PER STAGE
 		// switch (curStage)
@@ -636,7 +823,8 @@ class PlayState extends MusicBeatState
 
 		if (true)
 		{
-			comboUI.cameras = [camHUD];
+			// comboUI.cameras = [camHUD];
+			comboUI.cameras = [camNotes];
 			comboUI.setPosition(0, 0);
 			comboUI.scrollFactor.set(0, 0);
 			comboUI.setScales([comboUI.ratingScale * 0.8, comboUI.numberScale, comboUI.breakScale * 0.8]);
@@ -756,14 +944,16 @@ class PlayState extends MusicBeatState
 		add(iconP2);
 		add(iconP1);
 		add(scoreTxt);
+		add(blackThing);
 
-		strumLineNotes.cameras = [camHUD];
-		notes.cameras = [camHUD];
+		strumLineNotes.cameras = [camNotes];
+		notes.cameras = [camNotes];
 		healthBar.cameras = [camHUD];
 		healthBarBG.cameras = [camHUD];
 		iconP1.cameras = [camHUD];
 		iconP2.cameras = [camHUD];
 		scoreTxt.cameras = [camHUD];
+		blackThing.cameras = [camHUD];
 		// doof.cameras = [camHUD];
 
 		healthBar.visible = false;
@@ -843,7 +1033,106 @@ class PlayState extends MusicBeatState
 		add(bgDim);
 
 		openSubState(new LoadingSubState());
+
+		if (SONG.song.toLowerCase() == 'fuzzy-logic')
+		{
+			posMap['dad'] = new PosThing();
+			posMap['dad'].x = -500;
+			posMap['dad'].y = 300;
+			posMap['tv'] = new PosThing();
+			posMap['tv'].x = -300;
+			posMap['tv'].y = 2000;
+
+			if (!Config.noMouse)
+			{
+				mouseSpr = new FlxSprite().loadGraphic(Paths.image('mouse2'));
+				mouseSpr.scale.set(4, 4);
+				mouseSpr.updateHitbox();
+				mouseSpr.cameras = [camHUD];
+				add(mouseSpr);
+				mouseSpr.screenCenter(XY);
+				mouseSpr.alpha = 0.00001;
+			}
+
+			posMap['dad'].yOffset = 30;
+			FlxTween.tween(posMap['dad'], {"yOffset": -30}, 2, {type: PINGPONG});
+			posMap['dad'].xOffset = 15;
+			FlxTween.tween(posMap['dad'], {"xOffset": -15}, 3, {type: PINGPONG});
+			posMap['dad'].yaw = 90;
+			posMap['dad'].yawOffset = -15;
+			FlxTween.tween(posMap['dad'], {"yawOffset": 15}, 3.5, {type: PINGPONG});
+
+			// if (!Config.noMouse)
+			// {
+			// 	posMap['tv'].yOffset = 10;
+			// 	FlxTween.tween(posMap['tv'], {"yOffset": -10}, 2, {type: PINGPONG});
+			// 	posMap['tv'].yawOffset = 8;
+			// 	FlxTween.tween(posMap['tv'], {"yawOffset": -8}, 3, {type: PINGPONG});
+			// 	posMap['tv'].pitchOffset = 8;
+			// 	FlxTween.tween(posMap['tv'], {"pitchOffset": 8}, 1.8, {type: PINGPONG});
+			// 	posMap['tv'].rollOffset = 8;
+			// 	FlxTween.tween(posMap['tv'], {"rollOffset": -8}, 2, {type: PINGPONG});
+			// }
+			// else
+			// {
+			// 	posMap['tv'].yOffset = 10;
+			// 	FlxTween.tween(posMap['tv'], {"yOffset": -10}, 2, {type: PINGPONG});
+			// 	posMap['tv'].yawOffset = 20;
+			// 	FlxTween.tween(posMap['tv'], {"yawOffset": -20}, 1.6, {type: PINGPONG});
+			// 	posMap['tv'].pitchOffset = 20;
+			// 	FlxTween.tween(posMap['tv'], {"pitchOffset": -20}, 1.8, {type: PINGPONG});
+			// 	posMap['tv'].rollOffset = 20;
+			// 	FlxTween.tween(posMap['tv'], {"rollOffset": -20}, 1.7, {type: PINGPONG});
+			// }
+
+			posMap['tv'].yOffset = 10;
+			FlxTween.tween(posMap['tv'], {"yOffset": -10}, 2, {type: PINGPONG});
+			posMap['tv'].yawOffset = 8;
+			FlxTween.tween(posMap['tv'], {"yawOffset": -8}, 3, {type: PINGPONG});
+			posMap['tv'].pitchOffset = 8;
+			FlxTween.tween(posMap['tv'], {"pitchOffset": 8}, 1.8, {type: PINGPONG});
+			posMap['tv'].rollOffset = 8;
+			FlxTween.tween(posMap['tv'], {"rollOffset": -8}, 2, {type: PINGPONG});
+
+			staticScreen = new FlxSprite();
+			staticScreen.frames = Paths.getSparrowAtlas('static');
+			staticScreen.animation.addByPrefix('play', 'frame_', 15);
+			staticScreen.setGraphicSize(1280, 720);
+			staticScreen.updateHitbox();
+			staticScreen.animation.play('play', true);
+			staticScreen.cameras = [camNotes];
+			staticScreen.alpha = Config.noMouse ? 0.4 : 0.2;
+			add(staticScreen);
+
+			scanlines = new FlxSprite().loadGraphic(Paths.image('scanlines'));
+			scanlines.updateHitbox();
+			scanlines.cameras = [camNotes];
+			scanlines.alpha = Config.noMouse ? 0.7 : 0.4;
+			add(scanlines);
+
+			barThing = new FlxSprite().makeGraphic(1, 1, FlxColor.BLACK);
+			barThing.setGraphicSize(1280, Config.noMouse ? 90 : 60);
+			barThing.updateHitbox();
+			barThing.y = FlxG.height;
+			barThing.cameras = [camNotes];
+			barThing.alpha = Config.noMouse ? 0.6 : 0.4;
+			barTween = FlxTween.tween(barThing, {"y": -barThing.height - 400}, 5, {type: LOOPING});
+			add(barThing);
+		}
+
 		super.create();
+	}
+
+	function onMouseMove(x:Float, y:Float)
+	{
+		if (disableMouse)
+			return;
+
+		view.view.camera.rotationY += x * 0.2;
+		if (y > 0)
+			view.view.camera.rotationX = Math.min(90, view.view.camera.rotationX + y * 0.2);
+		else
+			view.view.camera.rotationX = Math.max(-90, view.view.camera.rotationX + y * 0.2);
 	}
 
 	var schoolPlane:Mesh;
@@ -907,6 +1196,28 @@ class PlayState extends MusicBeatState
 				view.view.scene.addChild(particleMesh);
 				System.gc();
 				particleAnimator.start();
+				LoadingCount.increment();
+			}
+		}
+	}
+
+	private function onAssetCompleteTV(event:Asset3DEvent):Void
+	{
+		if (event.asset.assetType == Asset3DType.MESH)
+		{
+			if (event.asset.name == 'floor_mesh')
+			{
+				planeBitmap = Cast.bitmapTexture("assets/models/floor/floor.png");
+				planeMat = new TextureMaterial(planeBitmap, false, true);
+				schoolPlane = cast event.asset;
+				schoolPlane.material = planeMat;
+				planeMat.shadowMethod = view.shadowMapMethod;
+				schoolPlane.scale(70);
+				schoolPlane.geometry.scaleUV(5, 5);
+				view.view.scene.addChild(schoolPlane);
+				schoolPlane.x = 750;
+				schoolPlane.y = -90;
+				System.gc();
 				LoadingCount.increment();
 			}
 		}
@@ -1033,6 +1344,9 @@ class PlayState extends MusicBeatState
 	function startCountdown():Void
 	{
 		inCutscene = false;
+		canPause = true;
+
+		disableMouse = false;
 
 		healthBar.visible = true;
 		healthBarBG.visible = true;
@@ -1159,6 +1473,14 @@ class PlayState extends MusicBeatState
 					});
 					FlxG.sound.play(Paths.sound('introGo' + altSuffix), 0.6);
 				case 4:
+					if (mouseSpr != null)
+					{
+						FlxTween.tween(mouseSpr, {"alpha": 0.66}, 0.5);
+						new FlxTimer().start(2, function(_)
+						{
+							FlxTween.tween(mouseSpr, {"alpha": 0}, 0.5);
+						});
+					}
 			}
 
 			swagCounter += 1;
@@ -1324,11 +1646,26 @@ class PlayState extends MusicBeatState
 		for (i in 0...4)
 		{
 			// FlxG.log.add(i);
-			var babyArrow:FlxSprite = new FlxSprite(50, strumLine.y);
+			var widthMult:Float = lowRes ? 0.95 : 1;
+			var thing:Float = 0;
+			if (lowRes)
+			{
+				thing = (FlxG.width - view.sprite.width - 50) / 2;
+				if (player == 1)
+				{
+					thing += view.sprite.width / 2;
+					thing += 50;
+				}
+				else
+				{
+					thing += 50;
+				}
+			}
+			var babyArrow:FlxSprite = new FlxSprite(lowRes ? thing : 50, strumLine.y);
 
 			switch (curStage)
 			{
-				case 'school' | 'schoolEvil':
+				default:
 					babyArrow.loadGraphic(Paths.image('weeb/pixelUI/arrows-pixels'), true, 17, 17);
 					babyArrow.animation.add('green', [6]);
 					babyArrow.animation.add('red', [7]);
@@ -1342,60 +1679,60 @@ class PlayState extends MusicBeatState
 					switch (Math.abs(i))
 					{
 						case 2:
-							babyArrow.x += Note.swagWidth * 2;
+							babyArrow.x += Note.swagWidth * 2 * widthMult;
 							babyArrow.animation.add('static', [2]);
 							babyArrow.animation.add('pressed', [6, 10], 12, false);
 							babyArrow.animation.add('confirm', [14, 18], 24, false);
 						case 3:
-							babyArrow.x += Note.swagWidth * 3;
+							babyArrow.x += Note.swagWidth * 3 * widthMult;
 							babyArrow.animation.add('static', [3]);
 							babyArrow.animation.add('pressed', [7, 11], 12, false);
 							babyArrow.animation.add('confirm', [15, 19], 24, false);
 						case 1:
-							babyArrow.x += Note.swagWidth * 1;
+							babyArrow.x += Note.swagWidth * 1 * widthMult;
 							babyArrow.animation.add('static', [1]);
 							babyArrow.animation.add('pressed', [5, 9], 12, false);
 							babyArrow.animation.add('confirm', [13, 17], 24, false);
 						case 0:
-							babyArrow.x += Note.swagWidth * 0;
+							babyArrow.x += Note.swagWidth * 0 * widthMult;
 							babyArrow.animation.add('static', [0]);
 							babyArrow.animation.add('pressed', [4, 8], 12, false);
 							babyArrow.animation.add('confirm', [12, 16], 24, false);
 					}
 
-				default:
-					babyArrow.frames = Paths.getSparrowAtlas('NOTE_assets');
-					babyArrow.animation.addByPrefix('green', 'arrowUP');
-					babyArrow.animation.addByPrefix('blue', 'arrowDOWN');
-					babyArrow.animation.addByPrefix('purple', 'arrowLEFT');
-					babyArrow.animation.addByPrefix('red', 'arrowRIGHT');
+					// default:
+					// 	babyArrow.frames = Paths.getSparrowAtlas('NOTE_assets');
+					// 	babyArrow.animation.addByPrefix('green', 'arrowUP');
+					// 	babyArrow.animation.addByPrefix('blue', 'arrowDOWN');
+					// 	babyArrow.animation.addByPrefix('purple', 'arrowLEFT');
+					// 	babyArrow.animation.addByPrefix('red', 'arrowRIGHT');
 
-					babyArrow.antialiasing = true;
-					babyArrow.setGraphicSize(Std.int(babyArrow.width * 0.7));
+					// 	babyArrow.antialiasing = true;
+					// 	babyArrow.setGraphicSize(Std.int(babyArrow.width * 0.7));
 
-					switch (Math.abs(i))
-					{
-						case 2:
-							babyArrow.x += Note.swagWidth * 2;
-							babyArrow.animation.addByPrefix('static', 'arrowUP');
-							babyArrow.animation.addByPrefix('pressed', 'up press', 24, false);
-							babyArrow.animation.addByPrefix('confirm', 'up confirm', 24, false);
-						case 3:
-							babyArrow.x += Note.swagWidth * 3;
-							babyArrow.animation.addByPrefix('static', 'arrowRIGHT');
-							babyArrow.animation.addByPrefix('pressed', 'right press', 24, false);
-							babyArrow.animation.addByPrefix('confirm', 'right confirm', 24, false);
-						case 1:
-							babyArrow.x += Note.swagWidth * 1;
-							babyArrow.animation.addByPrefix('static', 'arrowDOWN');
-							babyArrow.animation.addByPrefix('pressed', 'down press', 24, false);
-							babyArrow.animation.addByPrefix('confirm', 'down confirm', 24, false);
-						case 0:
-							babyArrow.x += Note.swagWidth * 0;
-							babyArrow.animation.addByPrefix('static', 'arrowLEFT');
-							babyArrow.animation.addByPrefix('pressed', 'left press', 24, false);
-							babyArrow.animation.addByPrefix('confirm', 'left confirm', 24, false);
-					}
+					// 	switch (Math.abs(i))
+					// 	{
+					// 		case 2:
+					// 			babyArrow.x += Note.swagWidth * 2;
+					// 			babyArrow.animation.addByPrefix('static', 'arrowUP');
+					// 			babyArrow.animation.addByPrefix('pressed', 'up press', 24, false);
+					// 			babyArrow.animation.addByPrefix('confirm', 'up confirm', 24, false);
+					// 		case 3:
+					// 			babyArrow.x += Note.swagWidth * 3;
+					// 			babyArrow.animation.addByPrefix('static', 'arrowRIGHT');
+					// 			babyArrow.animation.addByPrefix('pressed', 'right press', 24, false);
+					// 			babyArrow.animation.addByPrefix('confirm', 'right confirm', 24, false);
+					// 		case 1:
+					// 			babyArrow.x += Note.swagWidth * 1;
+					// 			babyArrow.animation.addByPrefix('static', 'arrowDOWN');
+					// 			babyArrow.animation.addByPrefix('pressed', 'down press', 24, false);
+					// 			babyArrow.animation.addByPrefix('confirm', 'down confirm', 24, false);
+					// 		case 0:
+					// 			babyArrow.x += Note.swagWidth * 0;
+					// 			babyArrow.animation.addByPrefix('static', 'arrowLEFT');
+					// 			babyArrow.animation.addByPrefix('pressed', 'left press', 24, false);
+					// 			babyArrow.animation.addByPrefix('confirm', 'left confirm', 24, false);
+					// 	}
 			}
 
 			babyArrow.updateHitbox();
@@ -1425,8 +1762,11 @@ class PlayState extends MusicBeatState
 			}
 
 			babyArrow.animation.play('static');
-			babyArrow.x += 50;
-			babyArrow.x += ((FlxG.width / 2) * player);
+			if (!lowRes)
+			{
+				babyArrow.x += 50;
+				babyArrow.x += FlxG.width / 2 * player;
+			}
 
 			strumLineNotes.add(babyArrow);
 		}
@@ -1490,6 +1830,8 @@ class PlayState extends MusicBeatState
 			// 	startTimer.active = true;
 			paused = false;
 
+			disableMouse = false;
+
 			for (timer in pausedTimers)
 			{
 				timer.active = true;
@@ -1516,7 +1858,7 @@ class PlayState extends MusicBeatState
 
 	private var paused:Bool = false;
 	var startedCountdown:Bool = false;
-	var canPause:Bool = true;
+	var canPause:Bool = false;
 
 	function truncateFloat(number:Float, precision:Int):Float
 	{
@@ -1526,10 +1868,37 @@ class PlayState extends MusicBeatState
 		return num;
 	}
 
+	var doingStuff:Bool = false;
+
 	override public function update(elapsed:Float)
 	{
-		if (!startedCountdown && LoadingCount.isDone())
-			startCountdown();
+		if (!doingStuff && !startedCountdown && LoadingCount.isDone())
+		{
+			if (SONG.song.toLowerCase() == 'fuzzy-logic')
+			{
+				persistentUpdate = true;
+				persistentDraw = true;
+				disableMouse = true;
+				if (!seenDialogue)
+				{
+					openSubState(new DialogueSubstate(startCountdown));
+					seenDialogue = true;
+				}
+				else
+				{
+					executeEvent('y', ['tv', -20, 0.5, false]);
+					FlxTween.tween(view.view.camera, {'rotationX': 0}, 0.5);
+					FlxTween.tween(posMap["dad"], {'roll': 0}, 0.5);
+					startCountdown();
+				}
+			}
+			else
+				startCountdown();
+			CustomTransition.transition(new IconIn(0.6));
+			blackThing.visible = false;
+			doingStuff = true;
+			view.view.visible = true;
+		}
 
 		/*New keyboard input stuff. Disables the listener when using controller because controller uses the other input set thing I did.
 
@@ -1567,7 +1936,7 @@ class PlayState extends MusicBeatState
 		{
 			while (eventList.length > 0 && getSongPos() >= eventList[eventList.length - 1][0])
 			{
-				var jsonStr = "[" + eventList[eventList.length - 1][2] + "]";
+				var jsonStr = ("[" + eventList[eventList.length - 1][2] + "]").replace("'", '"');
 				trace("THIS MAN: " + jsonStr);
 				var valArr:Array<Dynamic> = Json.parse(jsonStr);
 				executeEvent(eventList[eventList.length - 1][1], valArr);
@@ -1593,8 +1962,69 @@ class PlayState extends MusicBeatState
 
 		super.update(elapsed);
 
-		if (view != null)
-			view.view.render();
+		// if (gf != null && gf.model.fullyLoaded)
+		// {
+		// 	gf.model.mesh.lookAt(view.view.camera.position);
+		// }
+
+		@:privateAccess
+		if (tv != null && tv.fullyLoaded && view != null)
+		{
+			if (camNotes.flashSprite.__cacheBitmap != null && camNotes.flashSprite.__cacheBitmap.bitmapData != null)
+			{
+				tv.screenTex(camNotes.flashSprite.__cacheBitmap.bitmapData.__texture);
+			}
+		}
+
+		#if debug
+		@:privateAccess
+		if (FlxG.keys.justPressed.Q)
+		{
+			trace("WIDTH: " + camNotes.flashSprite.width);
+			trace("HEIGHT: " + camNotes.flashSprite.height);
+			camHUD.visible = !camHUD.visible;
+		}
+		#end
+
+		if (SONG.song.toLowerCase() == 'fuzzy-logic' && dad.model.fullyLoaded && tv.fullyLoaded)
+		{
+			var thing = posMap['dad'];
+			dad.model.mesh.x = thing.x + thing.xOffset;
+			dad.model.mesh.y = thing.y + thing.yOffset;
+			dad.model.mesh.z = thing.z + thing.zOffset;
+
+			if (startedCountdown)
+			{
+				dad.model.mesh.lookAt(view.view.camera.position);
+				dad.model.mesh.pitch(thing.pitchOffset);
+				dad.model.mesh.yaw(thing.yawOffset);
+				dad.model.mesh.roll(thing.rollOffset);
+			}
+			else
+			{
+				dad.model.mesh.rotationX = thing.pitch + thing.pitchOffset;
+				dad.model.mesh.rotationY = thing.yaw + thing.yawOffset;
+				dad.model.mesh.rotationZ = thing.roll + thing.rollOffset;
+			}
+
+			var thing = posMap['tv'];
+			tv.mesh.x = thing.x + thing.xOffset;
+			tv.mesh.y = thing.y + thing.yOffset;
+			tv.mesh.z = thing.z + thing.zOffset;
+
+			tv.mesh.lookAt(view.view.camera.position);
+
+			tv.mesh.pitch(thing.pitchOffset);
+			tv.mesh.yaw(thing.yawOffset);
+			tv.mesh.roll(thing.rollOffset);
+
+			if (Config.noMouse && !disableMouse)
+			{
+				var pos = tv.mesh.position;
+				pos.y += 150;
+				view.view.camera.lookAt(pos);
+			}
+		}
 
 		switch (Config.accuracy)
 		{
@@ -1609,6 +2039,7 @@ class PlayState extends MusicBeatState
 			doPause();
 		}
 
+		#if debug
 		if (FlxG.keys.justPressed.SEVEN)
 		{
 			PlayerSettings.menuControls();
@@ -1617,6 +2048,7 @@ class PlayState extends MusicBeatState
 			// FlxG.stage.removeEventListener(KeyboardEvent.KEY_DOWN, keyDown);
 			// FlxG.stage.removeEventListener(KeyboardEvent.KEY_DOWN, keyUp);
 		}
+		#end
 
 		var iconOffset:Int = 13;
 
@@ -1646,6 +2078,7 @@ class PlayState extends MusicBeatState
 		/* if (FlxG.keys.justPressed.NINE)
 			switchState(new Charting()); */
 
+		#if debug
 		if (FlxG.keys.justPressed.EIGHT)
 		{
 			PlayerSettings.menuControls();
@@ -1666,6 +2099,7 @@ class PlayState extends MusicBeatState
 				switchState(new AnimationDebug(SONG.player2));
 			}
 		}
+		#end
 
 		if (startingSong)
 		{
@@ -1777,6 +2211,7 @@ class PlayState extends MusicBeatState
 			if (view != null)
 				view.view.visible = false;
 			openSubState(new GameOverSubstate());
+			disableMouse = true;
 			sectionStart = false;
 		}
 
@@ -1813,6 +2248,15 @@ class PlayState extends MusicBeatState
 		rightRelease = false;
 	}
 
+	override public function draw()
+	{
+		if (view != null)
+		{
+			view.update();
+		}
+		super.draw();
+	}
+
 	function doPause()
 	{
 		persistentUpdate = false;
@@ -1820,6 +2264,8 @@ class PlayState extends MusicBeatState
 		paused = true;
 
 		PlayerSettings.menuControls();
+
+		disableMouse = true;
 
 		openSubState(new PauseSubState());
 	}
@@ -2070,7 +2516,8 @@ class PlayState extends MusicBeatState
 		// FlxG.stage.removeEventListener(KeyboardEvent.KEY_DOWN, keyDown);
 		// FlxG.stage.removeEventListener(KeyboardEvent.KEY_DOWN, keyUp);
 
-		switchState(new MainMenuState());
+		// switchState(new MainMenuState());
+		switchState(new Overworld());
 	}
 
 	public var endingSong:Bool = false;
@@ -3005,6 +3452,11 @@ class PlayState extends MusicBeatState
 	var camPanTween:FlxTween;
 	var camFocusTween:FlxTween;
 
+	var movTweenX:Map<String, FlxTween> = [];
+	var movTweenY:Map<String, FlxTween> = [];
+	var movTweenZ:Map<String, FlxTween> = [];
+	var movTweenCirc:Map<String, FlxTween> = [];
+
 	private function executeEvent(tag:String, value:Array<Dynamic>):Void
 	{
 		switch (tag)
@@ -3046,7 +3498,6 @@ class PlayState extends MusicBeatState
 				else
 					view.pan = pan;
 			case 'focus':
-				trace("DO THE THING");
 				var x:Float = value[0];
 				var y:Float = value[1];
 				var z:Float = value[2];
@@ -3060,6 +3511,275 @@ class PlayState extends MusicBeatState
 					camFocusTween = FlxTween.tween(view.lookAtObject, {"x": x, "y": y, "z": z}, time);
 				else
 					view.setCamLookAt(x, y, z);
+			case 'x':
+				var obj:String = value[0];
+				var distance:Float = value[1];
+				var time:Float = value[2];
+				var relative:Bool = value[3];
+				var mesh:Mesh = null;
+				if (obj == 'dad' || obj == 'both')
+				{
+					mesh = dad.model.mesh;
+					var tween = movTweenX['dad'];
+					if (tween != null && tween.active)
+					{
+						tween.cancel();
+						tween.destroy();
+					}
+					var destination = distance;
+					if (relative)
+						destination += mesh.x;
+					if (time > 0)
+						movTweenX['dad'] = FlxTween.tween(posMap["dad"], {"x": destination}, time, {ease: FlxEase.quadInOut});
+					else
+						posMap["dad"].x = destination;
+				}
+				if (obj == 'tv' || obj == 'both')
+				{
+					mesh = tv.mesh;
+					var tween = movTweenX['tv'];
+					if (tween != null && tween.active)
+					{
+						tween.cancel();
+						tween.destroy();
+					}
+					var destination = distance;
+					if (relative)
+						destination += mesh.x;
+					if (time > 0)
+						movTweenX['tv'] = FlxTween.tween(posMap["tv"], {"x": destination}, time, {ease: FlxEase.quadInOut});
+					else
+						posMap["tv"].x = destination;
+				}
+
+			case 'y':
+				var obj:String = value[0];
+				var distance:Float = value[1];
+				var time:Float = value[2];
+				var relative:Bool = value[3];
+				var mesh:Mesh = null;
+				if (obj == 'dad' || obj == 'both')
+				{
+					mesh = dad.model.mesh;
+					var tween = movTweenY['dad'];
+					if (tween != null && tween.active)
+					{
+						tween.cancel();
+						tween.destroy();
+					}
+					var destination = distance;
+					if (relative)
+						destination += mesh.y;
+					if (time > 0)
+						movTweenY['dad'] = FlxTween.tween(posMap["dad"], {"y": destination}, time, {ease: FlxEase.quadInOut});
+					else
+						posMap["dad"].y = destination;
+				}
+				if (obj == 'tv' || obj == 'both')
+				{
+					mesh = tv.mesh;
+					var tween = movTweenY['tv'];
+					if (tween != null && tween.active)
+					{
+						tween.cancel();
+						tween.destroy();
+					}
+					var destination = distance;
+					if (relative)
+						destination += mesh.y;
+					if (time > 0)
+						movTweenY['tv'] = FlxTween.tween(posMap["tv"], {"y": destination}, time, {ease: FlxEase.quadInOut});
+					else
+						posMap["tv"].y = destination;
+				}
+
+			case 'z':
+				var obj:String = value[0];
+				var distance:Float = value[1];
+				var time:Float = value[2];
+				var relative:Bool = value[3];
+				var mesh:Mesh = null;
+				if (obj == 'dad' || obj == 'both')
+				{
+					mesh = dad.model.mesh;
+					var tween = movTweenZ[obj];
+					if (tween != null && tween.active)
+					{
+						tween.cancel();
+						tween.destroy();
+					}
+					var destination = distance;
+					if (relative)
+						destination += mesh.z;
+					if (time > 0)
+						movTweenZ[obj] = FlxTween.tween(posMap["dad"], {"z": destination}, time, {ease: FlxEase.quadInOut});
+					else
+						posMap["dad"].z = destination;
+				}
+				else if (obj == 'tv' || obj == 'both')
+				{
+					mesh = tv.mesh;
+					var tween = movTweenZ[obj];
+					if (tween != null && tween.active)
+					{
+						tween.cancel();
+						tween.destroy();
+					}
+					var destination = distance;
+					if (relative)
+						destination += mesh.z;
+					if (time > 0)
+						movTweenZ[obj] = FlxTween.tween(posMap["tv"], {"z": destination}, time, {ease: FlxEase.quadInOut});
+					else
+						posMap["tv"].z = destination;
+				}
+
+			case 'angle':
+				var obj:String = value[0];
+				var distance:Float = value[1];
+				var angle:Float = value[2];
+				var time:Float = value[3];
+				var mesh:Mesh = null;
+				if (obj == 'dad' || obj == 'both')
+				{
+					mesh = dad.model.mesh;
+					var tween = movTweenZ[obj];
+					if (tween != null && tween.active)
+					{
+						tween.cancel();
+						tween.destroy();
+					}
+					var tween = movTweenX[obj];
+					if (tween != null && tween.active)
+					{
+						tween.cancel();
+						tween.destroy();
+					}
+
+					var destinationX = -FlxMath.fastSin(angle * FlxAngle.TO_RAD) * distance;
+					var destinationZ = FlxMath.fastCos(angle * FlxAngle.TO_RAD) * distance;
+					if (time > 0)
+					{
+						movTweenX[obj] = FlxTween.tween(posMap["dad"], {"x": destinationX}, time, {ease: FlxEase.quadInOut});
+						movTweenZ[obj] = FlxTween.tween(posMap["dad"], {"z": destinationZ}, time, {ease: FlxEase.quadInOut});
+					}
+					else
+					{
+						mesh.z = destinationZ;
+						mesh.x = destinationX;
+					}
+				}
+				if (obj == 'tv' || obj == 'both')
+				{
+					mesh = tv.mesh;
+					var tween = movTweenZ[obj];
+					if (tween != null && tween.active)
+					{
+						tween.cancel();
+						tween.destroy();
+					}
+					var tween = movTweenX[obj];
+					if (tween != null && tween.active)
+					{
+						tween.cancel();
+						tween.destroy();
+					}
+
+					var destinationX = -FlxMath.fastSin(angle * FlxAngle.TO_RAD) * distance;
+					var destinationZ = FlxMath.fastCos(angle * FlxAngle.TO_RAD) * distance;
+					if (time > 0)
+					{
+						movTweenX[obj] = FlxTween.tween(posMap["tv"], {"x": destinationX}, time, {ease: FlxEase.quadInOut});
+						movTweenZ[obj] = FlxTween.tween(posMap["tv"], {"z": destinationZ}, time, {ease: FlxEase.quadInOut});
+					}
+					else
+					{
+						mesh.z = destinationZ;
+						mesh.x = destinationX;
+					}
+				}
+
+			case 'circle':
+				var obj:String = value[0];
+				var distance:Float = value[1];
+				var angle:Float = value[2];
+				var time:Float = value[3];
+				var clockwise:Bool = value[4];
+				var loop:Bool = value[5];
+
+				if (obj == 'dad' || obj == 'both')
+				{
+					var tween = movTweenCirc['dad'];
+					if (tween != null && tween.active)
+					{
+						tween.cancel();
+						tween.destroy();
+					}
+					movTweenCirc['dad'] = FlxTween.circularMotion(circlSpr, 0, 0, distance, angle, clockwise, time, true, {
+						type: (loop ? LOOPING : ONESHOT),
+						onStart: function(_)
+						{
+							if (Math.abs(circlSpr.x) > 5 && Math.abs(circlSpr.y) > 5)
+							{
+								circlSpr.y = posMap["dad"].x;
+								circlSpr.x = posMap["dad"].z;
+							}
+						},
+						onUpdate: function(_)
+						{
+							posMap["dad"].x = circlSpr.y;
+							posMap["dad"].z = circlSpr.x;
+						}
+					});
+				}
+
+				if (obj == 'tv' || obj == 'both')
+				{
+					var tween = movTweenCirc['tv'];
+					if (tween != null && tween.active)
+					{
+						tween.cancel();
+						tween.destroy();
+					}
+					movTweenCirc['tv'] = FlxTween.circularMotion(circlSpr2, 0, 0, distance, angle, clockwise, time, true, {
+						type: (loop ? LOOPING : ONESHOT),
+						onStart: function(_)
+						{
+							if (Math.abs(circlSpr2.x) > 5 && Math.abs(circlSpr2.y) > 5)
+							{
+								circlSpr2.y = posMap["tv"].x;
+								circlSpr2.x = posMap["tv"].z;
+							}
+						},
+						onUpdate: function(_)
+						{
+							posMap["tv"].x = circlSpr2.y;
+							posMap["tv"].z = circlSpr2.x;
+						}
+					});
+				}
+
+			case 'endcircle':
+				var obj = value[0];
+				if (obj == 'dad' || obj == 'both')
+				{
+					var tween = movTweenCirc['dad'];
+					if (tween != null && tween.active)
+					{
+						tween.cancel();
+						tween.destroy();
+					}
+				}
+
+				if (obj == 'tv' || obj == 'both')
+				{
+					var tween = movTweenCirc['tv'];
+					if (tween != null && tween.active)
+					{
+						tween.cancel();
+						tween.destroy();
+					}
+				}
 
 			default:
 				trace(tag);
@@ -3268,19 +3988,43 @@ class PlayState extends MusicBeatState
 		super.onResize(x, y);
 		if (view != null)
 		{
-			view.view.width = FlxG.stage.stageWidth;
-			view.view.height = FlxG.stage.stageHeight;
+			if (!lowRes)
+			{
+				view.view.width = FlxG.scaleMode.gameSize.x;
+				view.view.height = FlxG.scaleMode.gameSize.y;
+				view.view.x = FlxG.stage.stageWidth / 2 - FlxG.scaleMode.gameSize.x / 2;
+				view.view.y = FlxG.stage.stageHeight / 2 - FlxG.scaleMode.gameSize.y / 2;
+			}
+			else
+			{
+				view.view.x = FlxG.stage.stageWidth;
+				view.view.y = FlxG.stage.stageHeight;
+			}
 		}
+		// @:privateAccess
+		// if (camNotes != null && camNotes.flashSprite.cacheAsBitmap)
+		// {
+		// 	camNotes.flashSprite.cacheAsBitmapMatrix.identity();
+		// 	camNotes.flashSprite.cacheAsBitmapMatrix.scale(1 / FlxG.scaleMode.scale.x, 1 / FlxG.scaleMode.scale.y);
+		// 	camNotes.flashSprite.cacheAsBitmap = false;
+		// 	camNotes.flashSprite.cacheAsBitmap = true;
+		// }
 	}
 
 	override public function switchTo(state:FlxState)
 	{
 		Asset3DLibrary.removeEventListener(Asset3DEvent.ASSET_COMPLETE, onAssetComplete);
+		Asset3DLibrary.removeEventListener(Asset3DEvent.ASSET_COMPLETE, onAssetCompleteTV);
+		Application.current.window.onMouseMoveRelative.remove(onMouseMove);
+		Application.current.window.mouseLock = false;
 		return super.switchTo(state);
 	}
 
 	override public function destroy()
 	{
+		if (barTween != null && barTween.active)
+			barTween.cancel();
+		barTween = FlxDestroyUtil.destroy(barTween);
 		Asset3DLibrary.stopLoad();
 		if (schoolPlane != null)
 		{
@@ -3355,6 +4099,9 @@ class PlayState extends MusicBeatState
 		boyfriend = FlxDestroyUtil.destroy(boyfriend);
 		dad = FlxDestroyUtil.destroy(dad);
 		gf = FlxDestroyUtil.destroy(gf);
+		if (tv != null)
+			tv.destroy();
+		tv = null;
 		Asset3DLibrary.removeAllAssets();
 		if (view != null)
 			view.destroy();
@@ -3369,5 +4116,25 @@ class PlayState extends MusicBeatState
 		}
 		FlxG.bitmap.clearCache();
 		Assets.cache.clear();
+	}
+}
+
+class PosThing
+{
+	public var x:Float = 0;
+	public var y:Float = 0;
+	public var z:Float = 0;
+	public var xOffset:Float = 0;
+	public var yOffset:Float = 0;
+	public var zOffset:Float = 0;
+	public var roll:Float = 0;
+	public var pitch:Float = 0;
+	public var yaw:Float = 0;
+	public var rollOffset:Float = 0;
+	public var pitchOffset:Float = 0;
+	public var yawOffset:Float = 0;
+
+	public function new()
+	{
 	}
 }

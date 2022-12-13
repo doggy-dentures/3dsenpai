@@ -81,7 +81,8 @@
 		<library name="videos"  preload="false" />
 	</section>
 	
-
+	<assets path="assets/agal" embed='true' unless="debug"/>
+	<assets path="assets/agal" if="debug"/>
 
 	<!-- NOTE FOR FUTURE SELF SINCE FONTS ARE ALWAYS FUCKY 
 		TO FIX ONE OF THEM, I CONVERTED IT TO OTF. DUNNO IF YOU NEED TO

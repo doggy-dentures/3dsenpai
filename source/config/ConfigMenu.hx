@@ -38,6 +38,9 @@ class ConfigMenu extends MusicBeatState
 	var scheme:Int;
 	var dimValue:Int;
 	var fpsDisplayValue:Int;
+	var lowResValue:Bool;
+	var noMouseValue:Bool;
+	var resTypes:Array<String> = ["Retro", "High Quality"];
 
 	var tabKeys:Array<String> = [];
 
@@ -49,7 +52,7 @@ class ConfigMenu extends MusicBeatState
 
 	final settingText:Array<String> = [
 		"NOTE OFFSET", "ACCURACY DISPLAY", "UNCAPPED FRAMERATE", "ALLOW GHOST TAPPING", "HP GAIN MULTIPLIER", "HP DRAIN MULTIPLIER", "DOWNSCROLL",
-		"NOTE GLOW", "COMBO DISPLAY", "BACKGROUND DIM", "FPS DISPLAY", "CONTROLLER SCHEME", "[EDIT KEY BINDS]"
+		"NOTE GLOW", "COMBO DISPLAY", "BACKGROUND DIM", "FPS DISPLAY", "CONTROLLER SCHEME", "[EDIT KEY BINDS]", "3D Mode", "NO MOUSE"
 	];
 
 	// Any descriptions that say TEMP are replaced with a changing description based on the current config setting.
@@ -67,7 +70,9 @@ class ConfigMenu extends MusicBeatState
 		"Adjusts how dark the background is.\nIt is recommended that you use the HUD combo display with a high background dim.",
 		"Shows a FPS counter in the top-left corner.",
 		"TEMP",
-		"Change key binds."
+		"Change key binds.",
+		"Affects game resolution and color palette during 3D segments.",
+		"Replace mouse camera control with an alternate camera system"
 	];
 
 	final ghostTapDesc:Array<String> = [
@@ -134,9 +139,11 @@ class ConfigMenu extends MusicBeatState
 		scheme = Config.controllerScheme;
 		dimValue = Config.bgDim;
 		fpsDisplayValue = Config.fpsDisplayValue;
+		lowResValue = Config.lowRes;
+		noMouseValue = Config.noMouse;
 
 		var tex = Paths.getSparrowAtlas('FNF_main_menu_assets');
-		var optionTitle:FlxSprite = new FlxSprite(0, 55);
+		var optionTitle:FlxSprite = new FlxSprite(0, 0);
 		optionTitle.frames = tex;
 		optionTitle.animation.addByPrefix('selected', "options white", 24);
 		optionTitle.animation.play('selected');
@@ -147,9 +154,9 @@ class ConfigMenu extends MusicBeatState
 
 		add(optionTitle);
 
-		configText = new FlxText(0, 215, 1280, "", 42);
+		configText = new FlxText(0, 160, 1280, "");
 		configText.scrollFactor.set(0, 0);
-		configText.setFormat(Paths.font("Funkin-Bold", "otf"), 42, FlxColor.WHITE, FlxTextAlign.CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		configText.setFormat(Paths.font("Funkin-Bold", "otf"), 38, FlxColor.WHITE, FlxTextAlign.CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		configText.borderSize = 3;
 		configText.borderQuality = 1;
 
@@ -164,7 +171,7 @@ class ConfigMenu extends MusicBeatState
 		tabDisplay.visible = false;
 		tabDisplay.setFormat("VCR OSD Mono", 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 
-		var backText = new FlxText(5, FlxG.height - 37, 0, "ESCAPE - Back to Menu\nBACKSPACE - Reset to Defaults\n", 16);
+		var backText = new FlxText(5, FlxG.height - 37, 0, "ESCAPE/BACKSPACE - Back to Menu\nDELETE - Reset to Defaults\n", 16);
 		backText.scrollFactor.set();
 		backText.setFormat("VCR OSD Mono", 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 
@@ -486,6 +493,18 @@ class ConfigMenu extends MusicBeatState
 						writeToConfig();
 						switchState(new KeyBindMenu());
 					}
+				case 13:
+					if (controls.RIGHT_P || controls.LEFT_P || controls.ACCEPT)
+					{
+						FlxG.sound.play(Paths.sound('scrollMenu'));
+						lowResValue = !lowResValue;
+					}
+				case 14:
+					if (controls.RIGHT_P || controls.LEFT_P || controls.ACCEPT)
+					{
+						FlxG.sound.play(Paths.sound('scrollMenu'));
+						noMouseValue = !noMouseValue;
+					}
 			}
 		}
 		else if (FlxG.keys.pressed.TAB)
@@ -511,13 +530,13 @@ class ConfigMenu extends MusicBeatState
 			tabDisplay.visible = false;
 		}
 
-		if (controls.BACK && canChangeItems)
+		if ((FlxG.keys.justPressed.ESCAPE || FlxG.keys.justPressed.BACKSPACE) && canChangeItems)
 		{
 			writeToConfig();
 			exit();
 		}
 
-		if (FlxG.keys.justPressed.BACKSPACE && canChangeItems)
+		if (FlxG.keys.justPressed.DELETE && canChangeItems)
 		{
 			Config.resetSettings();
 			FlxG.save.data.ee1 = false;
@@ -609,6 +628,10 @@ class ConfigMenu extends MusicBeatState
 				return ": " + fpsDisplays[fpsDisplayValue];
 			case 11:
 				return ": " + controlSchemes[scheme];
+			case 13:
+				return ": " + resTypes[lowResValue ? 0 : 1];
+			case 14:
+				return ": " + genericOnOff[noMouseValue ? 0 : 1];
 		}
 
 		return "";
@@ -650,13 +673,14 @@ class ConfigMenu extends MusicBeatState
 		switch (combo)
 		{
 			case "KADE":
-				Config.write(offsetValue, "complex", 5, 5, 1, downValue, false, 2, noCapValue, scheme, dimValue, fpsDisplayValue);
+				Config.write(offsetValue, "complex", 5, 5, 1, downValue, false, 2, noCapValue, scheme, dimValue, fpsDisplayValue, lowResValue, noMouseValue);
 				exit();
 			case "ROZE":
-				Config.write(offsetValue, "simple", 1, 1, 0, true, true, 0, noCapValue, scheme, dimValue, fpsDisplayValue);
+				Config.write(offsetValue, "simple", 1, 1, 0, true, true, 0, noCapValue, scheme, dimValue, fpsDisplayValue, lowResValue, noMouseValue);
 				exit();
 			case "CVAL":
-				Config.write(offsetValue, "simple", 1, 1, comboValue, false, glowValue, 1, noCapValue, scheme, dimValue, fpsDisplayValue);
+				Config.write(offsetValue, "simple", 1, 1, comboValue, false, glowValue, 1, noCapValue, scheme, dimValue, fpsDisplayValue, lowResValue,
+					noMouseValue);
 				exit();
 			case "GOTOHELLORSOMETHING":
 				System.exit(0); // I am very funny.
@@ -666,6 +690,6 @@ class ConfigMenu extends MusicBeatState
 	function writeToConfig()
 	{
 		Config.write(offsetValue, accuracyType, healthValue / 10.0, healthDrainValue / 10.0, comboValue, downValue, glowValue, randomTapValue, noCapValue,
-			scheme, dimValue, fpsDisplayValue);
+			scheme, dimValue, fpsDisplayValue, lowResValue, noMouseValue);
 	}
 }
